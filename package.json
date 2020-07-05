@@ -8,6 +8,7 @@
     "build": "rimraf ./dist && tsc",
     "prepublishOnly": "npm run build",
     "postpublish": "npm run clean",
+    "watch": "npm run build && npm link && nodemon",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Andreas Bauer <mail@anderl-bauer.de>",
@@ -33,6 +34,8 @@
     "@types/node": "10.17.19",
     "typescript": "^3.8.3",
     "rimraf": "^3.0.2",
-    "homebridge": "^1.0.4"
-  }
+    "homebridge": "^1.0.4",
+    "nodemon": "^2.0.4"
+  },
+  "dependencies": {}
 }

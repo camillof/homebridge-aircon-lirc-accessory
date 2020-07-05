@@ -11,6 +11,8 @@ import {
   Service
 } from "homebridge";
 
+import AirConClient from "./air_con_client";
+
 /*
  * IMPORTANT NOTICE
  *
@@ -51,7 +53,7 @@ class AirConLircAccessory implements AccessoryPlugin {
   // Some default values...
   private active = false;
   private currentStatus = hap.Characteristic.TargetHeaterCoolerState.HEAT;
-  private currentTemperature = 20;
+  private currentTemperature = 23;
 
   private readonly switchService: Service;
   private readonly informationService: Service;
@@ -67,8 +69,13 @@ class AirConLircAccessory implements AccessoryPlugin {
         callback(undefined, this.active);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+        if(!value as boolean) {
+          AirConClient.powerOff();
+        }else {
+          AirConClient.changeTemp(this.currentStatus, this.currentTemperature);
+        }
         this.active = value as boolean;
-        log.info("Active SET: " + (this.active? "ON": "OFF"));
+        log.info("Active SET: " + (this.active ? "ON" : "OFF"));
         callback();
       });
 
@@ -88,8 +95,30 @@ class AirConLircAccessory implements AccessoryPlugin {
         if (value != hap.Characteristic.TargetHeaterCoolerState.AUTO) {
           this.currentStatus = value as number;
         }
+        switch (value) {
+          case hap.Characteristic.TargetHeaterCoolerState.COOL:
+            const minCoolValue =
+              this.switchService.getCharacteristic(hap.Characteristic.CoolingThresholdTemperature).props.minValue as number;
+            if (this.currentTemperature < minCoolValue) {
+              this.currentTemperature =
+                AirConClient.changeTemp(this.currentStatus, minCoolValue);
+            }
+              break;
+          case hap.Characteristic.TargetHeaterCoolerState.HEAT:
+            const minHeatValue =
+              this.switchService.getCharacteristic(hap.Characteristic.HeatingThresholdTemperature).props.minValue as number;
+            if (this.currentTemperature < minHeatValue) {
+              this.currentTemperature =
+                AirConClient.changeTemp(hap.Characteristic.TargetHeaterCoolerState.HEAT, minHeatValue);
+            }
+          default:
+            break;
+        }
         callback();
-      });
+      })
+      .setProps({
+        minValue: 1 // Disable AUTO mode
+      });;
 
     this.switchService.getCharacteristic(hap.Characteristic.CurrentTemperature)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
@@ -110,9 +139,30 @@ class AirConLircAccessory implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         log.info("HeatingThresholdTemperature SET: " + (value as number));
-        this.currentTemperature = value as number;
+        this.currentTemperature = AirConClient.changeTemp(hap.Characteristic.TargetHeaterCoolerState.HEAT, value as number);
         callback();
-      });
+      })
+      .setProps({
+        minValue: 23,
+        maxValue: 23,
+        minStep: 1
+      });;
+
+    this.switchService.getCharacteristic(hap.Characteristic.CoolingThresholdTemperature)
+      .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
+        log.info("CoolingThresholdTemperature GET: " + this.currentTemperature);
+        callback(undefined, this.currentTemperature);
+      })
+      .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+        log.info("CoolingThresholdTemperature SET: " + (value as number));
+        this.currentTemperature = AirConClient.changeTemp(hap.Characteristic.TargetHeaterCoolerState.COOL, value as number);
+        callback();
+      })
+      .setProps({
+        minValue: 19,
+        maxValue: 25,
+        minStep: 1,
+      });;
 
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "Custom Manufacturer")
