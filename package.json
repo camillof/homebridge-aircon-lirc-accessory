@@ -1,6 +1,6 @@
 {
   "name": "homebridge-aircon-lirc-accessory",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "An accessory plugin for homebridge to control your AC through LIRC",
   "main": "dist/accessory.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "watch": "npm run build && npm link && nodemon",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Andreas Bauer <mail@anderl-bauer.de>",
+  "author": "Camillo Facello <52419977+camillof@users.noreply.github.com>",
   "engines": {
     "homebridge": ">=1.0.0"
   },
@@ -25,10 +25,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/homebridge/homebridge-examples.git"
+    "url": "https://github.com/camillof/homebridge-aircon-lirc-accessory.git"
   },
   "bugs": {
-    "url": "http://github.com/homebridge/homebridge-examples/issues"
+    "url": "https://github.com/camillof/homebridge-aircon-lirc-accessory/issues"
   },
   "devDependencies": {
     "@types/node": "10.17.19",
