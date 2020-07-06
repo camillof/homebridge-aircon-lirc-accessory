@@ -69,20 +69,20 @@ class AirConLircAccessory implements AccessoryPlugin {
         callback(undefined, this.active);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-        if(!value as boolean) {
-          AirConClient.powerOff();
-        }else {
+        if (this.active = value as boolean) {
           AirConClient.changeTemp(this.currentStatus, this.currentTemperature);
+        }else {
+          AirConClient.powerOff();
         }
-        this.active = value as boolean;
         log.info("Active SET: " + (this.active ? "ON" : "OFF"));
+
         callback();
       });
 
     this.switchService.getCharacteristic(hap.Characteristic.CurrentHeaterCoolerState)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         log.info("CurrentHeaterCoolerState GET: " + (this.currentStatus + 1));
-        callback(undefined, this.currentStatus +1);
+        callback(undefined, this.currentStatus + 1);
       });
 
     this.switchService.getCharacteristic(hap.Characteristic.TargetHeaterCoolerState)
@@ -95,25 +95,7 @@ class AirConLircAccessory implements AccessoryPlugin {
         if (value != hap.Characteristic.TargetHeaterCoolerState.AUTO) {
           this.currentStatus = value as number;
         }
-        switch (value) {
-          case hap.Characteristic.TargetHeaterCoolerState.COOL:
-            const minCoolValue =
-              this.switchService.getCharacteristic(hap.Characteristic.CoolingThresholdTemperature).props.minValue as number;
-            if (this.currentTemperature < minCoolValue) {
-              this.currentTemperature =
-                AirConClient.changeTemp(this.currentStatus, minCoolValue);
-            }
-              break;
-          case hap.Characteristic.TargetHeaterCoolerState.HEAT:
-            const minHeatValue =
-              this.switchService.getCharacteristic(hap.Characteristic.HeatingThresholdTemperature).props.minValue as number;
-            if (this.currentTemperature < minHeatValue) {
-              this.currentTemperature =
-                AirConClient.changeTemp(hap.Characteristic.TargetHeaterCoolerState.HEAT, minHeatValue);
-            }
-          default:
-            break;
-        }
+        this.setTemperature(value, this.currentTemperature);
         callback();
       })
       .setProps({
@@ -122,8 +104,9 @@ class AirConLircAccessory implements AccessoryPlugin {
 
     this.switchService.getCharacteristic(hap.Characteristic.CurrentTemperature)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
-        log.info("CurrentTemperature GET: " + this.currentTemperature);
-        callback(undefined, this.currentTemperature);
+        const temperature = this.active ? this.currentTemperature : null;
+        log.info("CurrentTemperature GET: " + temperature);
+        callback(undefined, temperature);
       });
 
     this.switchService.getCharacteristic(hap.Characteristic.TemperatureDisplayUnits)
@@ -139,12 +122,12 @@ class AirConLircAccessory implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         log.info("HeatingThresholdTemperature SET: " + (value as number));
-        this.currentTemperature = AirConClient.changeTemp(hap.Characteristic.TargetHeaterCoolerState.HEAT, value as number);
+        this.currentTemperature = this.setTemperature(hap.Characteristic.TargetHeaterCoolerState.HEAT, value as number);
         callback();
       })
       .setProps({
-        minValue: 23,
-        maxValue: 23,
+        minValue: AirConClient.MIN_HEAT_VALUE,
+        maxValue: AirConClient.MAX_HEAT_VALUE,
         minStep: 1
       });;
 
@@ -155,20 +138,38 @@ class AirConLircAccessory implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         log.info("CoolingThresholdTemperature SET: " + (value as number));
-        this.currentTemperature = AirConClient.changeTemp(hap.Characteristic.TargetHeaterCoolerState.COOL, value as number);
+        this.currentTemperature = this.setTemperature(hap.Characteristic.TargetHeaterCoolerState.COOL, value as number);
         callback();
       })
       .setProps({
-        minValue: 19,
-        maxValue: 25,
+        minValue: AirConClient.MIN_COOL_VALUE,
+        maxValue: AirConClient.MAX_COOL_VALUE,
         minStep: 1,
       });;
 
     this.informationService = new hap.Service.AccessoryInformation()
-      .setCharacteristic(hap.Characteristic.Manufacturer, "Custom Manufacturer")
-      .setCharacteristic(hap.Characteristic.Model, "Custom Model");
+      .setCharacteristic(hap.Characteristic.Manufacturer, "AirConLircAccesoryManufacturer")
+      .setCharacteristic(hap.Characteristic.Model, "AirConLircAccesoryModel");
 
-    log.info("Cooler finished initializing!");
+    log.info("AirConLircAccesory finished initializing!");
+  }
+
+  private setTemperature(mode: any, temperature: number ): number {
+    switch (mode) {
+      case hap.Characteristic.TargetHeaterCoolerState.COOL:
+        if (temperature < AirConClient.MIN_COOL_VALUE || temperature > AirConClient.MAX_COOL_VALUE) {
+          return AirConClient.changeTemp(mode, AirConClient.MIN_COOL_VALUE);
+        }
+        break;
+      case hap.Characteristic.TargetHeaterCoolerState.HEAT:
+        if (temperature < AirConClient.MAX_HEAT_VALUE || temperature > AirConClient.MAX_HEAT_VALUE) {
+          return AirConClient.changeTemp(mode, AirConClient.MIN_COOL_VALUE);
+        }
+        break;
+      default:
+        return temperature;
+    }
+    return temperature;
   }
 
   /*
