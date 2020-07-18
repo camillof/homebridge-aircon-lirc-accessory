@@ -23,8 +23,9 @@ export default class AirConClient {
   }
 
   private static sendEvent(device: string, command: string) {
-    child.exec(`irsend SEND_ONCE ${device} ${command}`);
+    for (var i = 0; i < 3; i++) {
+      // Send the event multiple times just in case the receiver didn't get it
+      child.exec(`irsend SEND_ONCE ${device} ${command}`);
+    }
   }
-
-
 }
