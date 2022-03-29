@@ -1,3 +1,6 @@
+> :warning: Repository is not maintained, this is a side-project, to play around with the raspberry. Please consider fixing the security vulnerabilities before installing this plugin
+
+
 # AirConLircAccessory Plugin
 
 This plugin is intended to work with [Homebridge](https://github.com/homebridge/homebridge), giving the ability to control your dumb AirConditioner through [LIRC](https://www.lirc.org/).
